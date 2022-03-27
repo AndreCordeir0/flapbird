@@ -36,6 +36,17 @@ const planoDeFundo = {
     },
   };
 
+function fazColisao(flappyBird,chao){
+
+    let flappyBirdY = flappyBird.y+ flappyBird.altura
+    let chaoY =  chao.y
+    if(flappyBirdY >= chaoY){
+        console.log('tocou');
+        return true;
+    }return false;
+}
+
+
   //chão
   const chao = {
     spriteX: 0,
@@ -44,6 +55,12 @@ const planoDeFundo = {
     altura: 112,
     x: 0,
     y: canvas.height - 112,
+    atualiza(){
+        const movimentoDoChao = 1;
+        const repeteEm = chao.largura /2
+        const movimentacao = chao.x - movimentoDoChao
+        chao.x = movimentacao % repeteEm;
+    },
     desenha() {
       contexto.drawImage(
         image,
@@ -69,9 +86,22 @@ const planoDeFundo = {
     altura :24,
     x:10,
     y:50,
-    gravidade:0.25,
+   
+    pulo:4.6,
+    pula(){
+        flappyBird.velocidade=- flappyBird.pulo;
+    },
+     gravidade:0.25,
     velocidade:0,
     atualiza(){
+        if(fazColisao(flappyBird,chao)){
+            console.log('colidiu');
+            mudaTela(telas.INICIO)
+            flappyBird.x =10;
+            flappyBird.y = 50;
+            flappyBird.velocidade=0;
+            return;
+        }
 
         flappyBird.velocidade = flappyBird.velocidade +flappyBird.gravidade;
         flappyBird.y = flappyBird.y + flappyBird.velocidade;
@@ -114,6 +144,18 @@ function mudaTela(novaTela){
     telaAtiva = novaTela;
 }
 
+//
+//Colisão
+//
+function colisao(){
+    if(flappyBird.y == canvas.offsetTop && flappyBird.altura == canvas.offsetHeight){
+        console.log('Colidiu');
+    }
+}
+
+
+
+//Telas
 const telas = {
     INICIO:{
         desenha(){
@@ -140,6 +182,8 @@ telas.jogo = {
         chao.desenha();
         flappyBird.desenha();
 
+    },click(){
+        flappyBird.pula();
     },
     atualiza(){
         flappyBird.atualiza();
@@ -151,7 +195,7 @@ function loop(){
   
     telaAtiva.desenha();
     telaAtiva.atualiza();
- 
+    chao.atualiza()
     
     requestAnimationFrame(loop);
 }
@@ -162,6 +206,6 @@ if(telaAtiva.click){
 }
 
 })
-
+colisao();
 mudaTela(telas.INICIO);
 loop()
