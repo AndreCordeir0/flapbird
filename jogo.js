@@ -3,7 +3,7 @@ image.src ='./sprites.png';
 
 let canvas = document.querySelector('canvas');
 let contexto = canvas.getContext('2d')
-
+let frames = 0
 
 
 //plano de fundo
@@ -79,6 +79,11 @@ function fazColisao(flappyBird,chao){
       );
     },
   };
+
+
+
+
+  
   const flappyBird = {
     spriteX : 0,
     spriteY: 0,
@@ -86,7 +91,26 @@ function fazColisao(flappyBird,chao){
     altura :24,
     x:10,
     y:50,
-   
+    movimentos :[
+
+        {spriteX:0, spriteY:0,},
+        {spriteX:0, spriteY:26,},
+        {spriteX:0, spriteY:52,},
+        {spriteX:0, spriteY:26,},
+    ],
+    frameAtual :0,
+    atualizaFrameAtual(){
+
+        const intervaloDeFrames = 5;
+        const passouIntervalo = frames % intervaloDeFrames === 0;
+            if (passouIntervalo) {
+                const baseDoIncremento = 1 
+                const incremento = baseDoIncremento + flappyBird.frameAtual;
+                const baseRepeticao = flappyBird.movimentos.length;
+                flappyBird.frameAtual = incremento % baseRepeticao
+            
+            }
+    },
     pulo:4.6,
     pula(){
         flappyBird.velocidade=- flappyBird.pulo;
@@ -106,11 +130,16 @@ function fazColisao(flappyBird,chao){
         flappyBird.velocidade = flappyBird.velocidade +flappyBird.gravidade;
         flappyBird.y = flappyBird.y + flappyBird.velocidade;
 
+    },mudança(){
+    
     },
     desenha(){
+        flappyBird.atualizaFrameAtual()
+const {spriteX,spriteY} = flappyBird.movimentos[flappyBird.frameAtual];
+
         contexto.drawImage(
             image,
-            flappyBird.spriteX,flappyBird.spriteY, //Sprite x e y
+            spriteX,spriteY, //Sprite x e y
             flappyBird.largura,flappyBird.altura, //Largura e Altura
             flappyBird.x,flappyBird.y,
             flappyBird.largura,flappyBird.altura
@@ -134,7 +163,6 @@ function fazColisao(flappyBird,chao){
               getReady.largura, getReady.altura,
             );
     }}
-
 //
 //TELAS
 //
@@ -196,8 +224,9 @@ function loop(){
     telaAtiva.desenha();
     telaAtiva.atualiza();
     chao.atualiza()
-    
+    flappyBird.mudança()
     requestAnimationFrame(loop);
+
 }
 
 canvas.addEventListener('click',()=>{
