@@ -8,7 +8,7 @@ let contexto = canvas.getContext('2d')
 
 //plano de fundo
 const planoDeFundo = {
-    spriteX: 390,
+    spriteX: 1390,
     spriteY: 0,
     largura: 275,
     altura: 204,
