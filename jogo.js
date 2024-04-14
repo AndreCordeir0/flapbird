@@ -4,7 +4,8 @@ image.src = './sprites.png';
 let canvas = document.querySelector('canvas');
 let contexto = canvas.getContext('2d')
 let framesFlappyBird = 0
-
+const PIXEL_INICIAL_ENTRE_TUBOS = 100;
+const FPS = 60;
 const planoDeFundo = {
     spriteX: 1390,
     spriteY: 0,
@@ -81,6 +82,118 @@ const cenario = {
         )
     },
 }
+function tuboFactory() {
+    const tubo = 
+    {
+        largura: 52,
+        altura: 400,
+        chao: {
+            spriteX: 0,
+            spriteY: 169,
+        },
+        ceu: {
+            spriteX: 52,
+            spriteY: 169,
+        },
+        espaco: 80,
+        pares: [],
+        x: 410,
+        y: 0,
+        desenha()  {
+            if (tubo?.tuboChao?.x === -tubo?.largura) {
+                tubo.tuboChao.x = tubo.x;
+                tubo.tuboCeu.x = tubo.x;
+            }
+            const espacamentoEntreTubos = 60;
+
+            let alturaDoTubo = Math.floor(Math.random() * 100);
+            let tuboCeuX
+            let tuboCeuY;
+            const sinal = Math.floor(Math.random() * 2);
+            if (tubo.tuboCeu) {
+                tuboCeuX = tubo.tuboCeu.x;
+                tuboCeuY = tubo.tuboCeu.y;
+            }  else {
+                tuboCeuX = tubo.x;
+                if (sinal === 0) {
+                    tuboCeuY = tubo.y  - espacamentoEntreTubos - 240 + alturaDoTubo;
+                } else {
+                    tuboCeuY = tubo.y  - espacamentoEntreTubos - 240 - alturaDoTubo;
+                }
+            }
+            //Tubo do céu
+            contexto.drawImage(
+                image,
+                tubo.ceu.spriteX, tubo.ceu.spriteY,
+                tubo.largura, tubo.altura,
+                tuboCeuX, tuboCeuY,
+                tubo.largura, tubo.altura,
+            )
+    
+            //Tubo do chão
+            let tuboChaoX
+            let tuboChaoY;
+            if (tubo.tuboChao) {
+                tuboChaoX = tubo.tuboChao.x;
+                tuboChaoY = tubo.tuboChao.y;
+            } else {
+                tuboChaoX = tubo.x;
+                tuboChaoY = 160 + espacamentoEntreTubos + alturaDoTubo;
+                if (sinal === 0) {
+                    tuboChaoY = 160 + espacamentoEntreTubos + alturaDoTubo;
+                } else {
+                    tuboChaoY = 160 + espacamentoEntreTubos - alturaDoTubo;
+                }
+            }
+    
+            contexto.drawImage(
+                image,
+                tubo.chao.spriteX, tubo.chao.spriteY,
+                tubo.largura, tubo.altura,
+                tuboChaoX, tuboChaoY,
+                tubo.largura, tubo.altura,
+            )
+    
+            tubo.tuboCeu = {
+                x: tuboCeuX,
+                y: tuboCeuY
+            }
+            tubo.tuboChao = {
+                x: tuboChaoX,
+                y: tuboChaoY
+            }
+        },
+        atualiza() {
+            const bicoDoPassaro = flappyBird.x + flappyBird.largura;
+            const parteDeBaixoDoPassaro = flappyBird.y + flappyBird.altura;
+            // const parteDeCimaDoPassaro = flappyBird.y + flappyBird.altura;
+            const pontaDoTuboCeu = tubo.tuboCeu.y + tubo.altura;
+            const pontaDoTuboChao = tubo.tuboChao.y;
+            
+            if (
+                (bicoDoPassaro === tubo.tuboCeu.x && flappyBird.y <= pontaDoTuboCeu)
+                || 
+                flappyBird.y <= pontaDoTuboCeu && (flappyBird.x <= tubo?.tuboCeu?.x + tubo?.largura && flappyBird?.x >= tubo?.tuboCeu.x)
+                ||
+                (bicoDoPassaro === tubo.tuboChao.x && parteDeBaixoDoPassaro >= tubo.tuboChao.y)
+                ||
+                parteDeBaixoDoPassaro >= pontaDoTuboChao && (flappyBird.x <= tubo?.tuboChao?.x + tubo?.largura && flappyBird?.x >= tubo?.tuboChao.x)
+            ) {
+                alterarTelaAtual(telas.INICIO)
+                flappyBird.x = 10;
+                flappyBird.y = 50;
+                flappyBird.velocidade = 0;
+                return;
+            }
+            const frame = framesFlappyBird % 1;
+            if (frame === 0) {
+                tubo.tuboCeu.x = tubo.tuboCeu.x - 1;
+                tubo.tuboChao.x = tubo.tuboChao.x - 1;
+            }   
+        }
+    }
+    return tubo;
+}
 
 
 const flappyBird = {
@@ -119,7 +232,7 @@ const flappyBird = {
             flappyBird.frameAtual = proximoFrameFlappyBird % quantidadeFramesDoFlappyBird;
         }
     },
-    pulo: 4.6,
+    pulo: 3.6,
     pula() {
         flappyBird.velocidade = -flappyBird.pulo;
     },
@@ -195,16 +308,6 @@ function desenharNaTela(options = {}) {
     )
 }
 
-//
-//Colisão
-//
-function colisao() {
-    if (flappyBird.y == canvas.offsetTop && flappyBird.altura == canvas.offsetHeight) {
-        console.log('Colidiu');
-    }
-}
-
-
 
 //Telas
 const telas = {
@@ -215,12 +318,16 @@ const telas = {
             flappyBird.desenha();
             cenario.desenha();
             getReady.desenha();
+            tubos = [];
         },
         click() {
             alterarTelaAtual(telas.INICIAR_JOGO);
         },
         atualiza() {
             framesFlappyBird++;
+        },
+        spaceKeyboardEvent() {
+            alterarTelaAtual(telas.INICIAR_JOGO);
         }
     },
     INICIAR_JOGO: {
@@ -228,6 +335,7 @@ const telas = {
             //A ordem importa para o z-index das imagens, a primeira a ser desenhada fica por baixo
             planoDeFundo.desenha();
             cenario.desenha();
+            desenharCanos();
             terreno.desenha();
             flappyBird.desenha();
         },
@@ -236,17 +344,34 @@ const telas = {
         },
         atualiza() {
             flappyBird.atualiza();
+        },
+        spaceKeyboardEvent() {
+            flappyBird.pula();
         }
     }
 };
+let tubos = [];
+function desenharCanos() {
+    const frames = framesFlappyBird % 300;
+    if (frames === 0 && tubos.length < 3) {
+        const tubo = tuboFactory();
+        tubos.push(tubo);
+    }
+    tubos.forEach(tubo => {
+        tubo.desenha(); 
+    });
+}
+
+
 
 function loop() {
     telaAtiva.desenha();
     telaAtiva.atualiza();
     cenario.atualiza();
     terreno.atualiza();
-
-    // flappyBird.mudança();
+    tubos.forEach(tubo => {
+        tubo.atualiza();
+    });
     requestAnimationFrame(loop);
 }
 
@@ -255,6 +380,13 @@ canvas.addEventListener('click', () => {
         telaAtiva.click();
     }
 });
-colisao();
+
+document.addEventListener('keydown', (event) => {
+    if (event.code === 'Space') {
+        if (telaAtiva.spaceKeyboardEvent) {
+            telaAtiva.spaceKeyboardEvent();
+        }
+    }
+});
 alterarTelaAtual(telas.INICIO);
-loop()
+loop();
