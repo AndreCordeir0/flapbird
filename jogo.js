@@ -6,6 +6,8 @@ let contexto = canvas.getContext('2d')
 let framesFlappyBird = 0
 const PIXEL_INICIAL_ENTRE_TUBOS = 100;
 const FPS = 60;
+let score = 0;
+let best = 0;
 const planoDeFundo = {
     spriteX: 1390,
     spriteY: 0,
@@ -20,8 +22,8 @@ const planoDeFundo = {
     },
 };
 
-function hasColisao(flappyBird) {
-    let flappyBirdY = flappyBird.y + flappyBird.altura
+function hasColisao() {
+    let flappyBirdY = flappyBird.y + flappyBird.altura;
     return flappyBirdY >= terreno.y;
 }
 
@@ -99,10 +101,12 @@ function tuboFactory() {
         pares: [],
         x: 410,
         y: 0,
+        contadoPontuacao: false,
         desenha()  {
             if (tubo?.tuboChao?.x === -tubo?.largura) {
                 tubo.tuboChao.x = tubo.x;
                 tubo.tuboCeu.x = tubo.x;
+                tubo.contadoPontuacao = false;
             }
             const espacamentoEntreTubos = 60;
 
@@ -138,7 +142,6 @@ function tuboFactory() {
                 tuboChaoY = tubo.tuboChao.y;
             } else {
                 tuboChaoX = tubo.x;
-                tuboChaoY = 160 + espacamentoEntreTubos + alturaDoTubo;
                 if (sinal === 0) {
                     tuboChaoY = 160 + espacamentoEntreTubos + alturaDoTubo;
                 } else {
@@ -163,26 +166,32 @@ function tuboFactory() {
                 y: tuboChaoY
             }
         },
-        atualiza() {
+        hasColisao() {
             const bicoDoPassaro = flappyBird.x + flappyBird.largura;
             const parteDeBaixoDoPassaro = flappyBird.y + flappyBird.altura;
-            // const parteDeCimaDoPassaro = flappyBird.y + flappyBird.altura;
             const pontaDoTuboCeu = tubo.tuboCeu.y + tubo.altura;
             const pontaDoTuboChao = tubo.tuboChao.y;
-            
-            if (
+            return (
                 (bicoDoPassaro === tubo.tuboCeu.x && flappyBird.y <= pontaDoTuboCeu)
                 || 
-                flappyBird.y <= pontaDoTuboCeu && (flappyBird.x <= tubo?.tuboCeu?.x + tubo?.largura && flappyBird?.x >= tubo?.tuboCeu.x)
-                ||
-                (bicoDoPassaro === tubo.tuboChao.x && parteDeBaixoDoPassaro >= tubo.tuboChao.y)
-                ||
-                parteDeBaixoDoPassaro >= pontaDoTuboChao && (flappyBird.x <= tubo?.tuboChao?.x + tubo?.largura && flappyBird?.x >= tubo?.tuboChao.x)
+            flappyBird.y <= pontaDoTuboCeu && (flappyBird.x <= tubo?.tuboCeu?.x + tubo?.largura && flappyBird?.x >= tubo?.tuboCeu.x)
+            ||
+            (bicoDoPassaro === tubo.tuboChao.x && parteDeBaixoDoPassaro >= tubo.tuboChao.y)
+            ||
+            parteDeBaixoDoPassaro >= pontaDoTuboChao && (flappyBird.x <= tubo?.tuboChao?.x + tubo?.largura && flappyBird?.x >= tubo?.tuboChao.x)
+        );
+        },
+        atualiza() {
+            if (tubo.tuboCeu.x <= flappyBird.x && !tubo.contadoPontuacao) {
+                tubo.contadoPontuacao = true;
+                score++;
+            }
+            
+            if (
+               tubo.hasColisao()
             ) {
-                alterarTelaAtual(telas.INICIO)
-                flappyBird.x = 10;
-                flappyBird.y = 50;
-                flappyBird.velocidade = 0;
+                alterarTelaAtual(telas.TELA_PONTUACAO);
+                resetarGame();
                 return;
             }
             const frame = framesFlappyBird % 1;
@@ -193,6 +202,77 @@ function tuboFactory() {
         }
     }
     return tubo;
+}
+
+const telaPontuacao = {
+    spriteX: 134,
+    spriteY: 153,
+    largura: 226,
+    altura: 200,
+    x: (canvas.width / 2) - 226 / 2,
+    y: 50,
+    medalhas: {
+        vazio: {
+            spriteX: 0,
+            spriteY: 78,
+            largura: 44,
+            altura: 44,
+        },
+        bronze: {
+            spriteX: 47,
+            spriteY: 124,
+            largura: 44,
+            altura: 44,
+        },
+        prata: {
+            spriteX: 47,
+            spriteY: 78,
+            largura: 44,
+            altura: 44,
+        },
+        ouro: {
+            spriteX: 0,
+            spriteY: 124,
+            largura: 44,
+            altura: 44,
+        }
+    },
+    desenha() {
+        let medalha;
+        if (score >= 0) {
+            medalha = 'vazio';
+        }
+        if (score > 9) {
+            medalha = 'bronze';
+        }
+        if (score > 50) {
+            medalha = 'prata';
+        }
+        if (score > 99) {
+            medalha = 'ouro';
+        }
+        //Placar
+        contexto.drawImage(
+            image,
+            telaPontuacao.spriteX, telaPontuacao.spriteY,
+            telaPontuacao.largura, telaPontuacao.altura,
+            telaPontuacao.x, telaPontuacao.y,
+            telaPontuacao.largura, telaPontuacao.altura,
+        );
+
+        //Medalha
+        contexto.drawImage(
+            image,
+            telaPontuacao.medalhas[medalha].spriteX, telaPontuacao.medalhas[medalha].spriteY,
+            telaPontuacao.medalhas[medalha].largura, telaPontuacao.medalhas[medalha].altura,
+            telaPontuacao.x + 25, telaPontuacao.y + 86,
+            telaPontuacao.medalhas[medalha].largura, telaPontuacao.medalhas[medalha].altura,
+        );
+
+        drawScore(score, telaPontuacao.x + 175, telaPontuacao.y + 100);
+        drawScore(best, telaPontuacao.x + 175, telaPontuacao.y + 145);
+        
+    }
 }
 
 
@@ -239,11 +319,9 @@ const flappyBird = {
     gravidade: 0.15,
     velocidade: 0,
     atualiza() {
-        if (hasColisao(flappyBird)) {
-            alterarTelaAtual(telas.INICIO)
-            flappyBird.x = 10;
-            flappyBird.y = 50;
-            flappyBird.velocidade = 0;
+        if (hasColisao()) {
+            alterarTelaAtual(telas.TELA_PONTUACAO);
+            resetarGame();
             return;
         }
         flappyBird.velocidade = flappyBird.velocidade + flappyBird.gravidade;
@@ -266,7 +344,16 @@ const flappyBird = {
         );
     }
 }
-
+function resetarGame() {
+    flappyBird.x = 10;
+    flappyBird.y = 50;
+    flappyBird.velocidade = 0;
+    tubos = [];
+    if (score > best)
+        best = score;
+    
+    // best = 0;
+}
 const getReady = {
     spriteX: 134,
     spriteY: 0,
@@ -322,6 +409,7 @@ const telas = {
         },
         click() {
             alterarTelaAtual(telas.INICIAR_JOGO);
+            score = 0;
         },
         atualiza() {
             framesFlappyBird++;
@@ -348,6 +436,20 @@ const telas = {
         spaceKeyboardEvent() {
             flappyBird.pula();
         }
+    },
+    TELA_PONTUACAO: {
+        desenha() {
+            telaPontuacao.desenha();
+        },
+        atualiza() {},
+        click() {
+            alterarTelaAtual(telas.INICIAR_JOGO);
+            score = 0;
+        },
+        spaceKeyboardEvent() {
+            alterarTelaAtual(telas.INICIAR_JOGO);
+            score = 0;
+        }
     }
 };
 let tubos = [];
@@ -362,13 +464,18 @@ function desenharCanos() {
     });
 }
 
-
+function drawScore(pontuacao = score , posicaoX = canvas.width - 40, posicaoY = 35) {
+    contexto.font = '20px "Press Start 2P"';
+    contexto.fillStyle = 'white';
+    contexto.fillText(pontuacao, posicaoX, posicaoY);
+}
 
 function loop() {
     telaAtiva.desenha();
     telaAtiva.atualiza();
     cenario.atualiza();
     terreno.atualiza();
+    drawScore();
     tubos.forEach(tubo => {
         tubo.atualiza();
     });
